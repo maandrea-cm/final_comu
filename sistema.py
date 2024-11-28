@@ -44,6 +44,30 @@ def qpsk_modulation(bits, carrier_freq, fs, samples_per_symbol):
     qpsk_signal = I_signal * cos_wave - Q_signal * sin_wave
     return qpsk_signal
 
+# --- 4.2 Modulación QPSK 2 ---
+def qpsk_modulation2(bits, fc, Fm, OF):
+    """
+    Modulate an incoming binary stream using conventional QPSK
+    Parameters:
+        bits : input Bipolar NRZ data stream (-1's and 1's) to modulate
+        fc : carrier frequency in Hertz
+        OF : oversampling factor - at least 4 is better
+    """
+    L = 2*OF # samples in each symbol (QPSK has 2 bits in each symbol)
+    I = bits[0::2];Q = bits[1::2] #even and odd bit streams
+    # even/odd streams at 1/2Tb baud
+    
+    #upsampling
+    I = np.repeat(I, L)
+    Q = np.repeat(Q, L)
+        
+    fs = OF*fc # sampling frequency 
+    t=np.arange(0,len(I)/fs,1/fs)  #time base    
+    
+    I_t = I*np.cos(2*np.pi*fc*t); Q_t = -Q*np.sin(2*np.pi*fc*t)
+    qpsk_signal = I_t + Q_t # QPSK modulated baseband signal 
+    return qpsk_signal, I_t, Q_t
+
 # --- 5. Canal AWGN ---
 def awgn(signal, snr_db):
     """Agrega ruido gaussiano al canal."""
