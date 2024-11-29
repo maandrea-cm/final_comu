@@ -1,5 +1,6 @@
 # Archivos a ignorar
-venv/
+prueba/
 __pycache__/
 *.pyc
 *.pyo
+.DS_Store
