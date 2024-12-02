@@ -1,5 +1,6 @@
 import numpy as np
-from scipy.signal import butter, filtfilt
+from scipy.signal import butter, filtfilt, welch
+from scipy.special import erfc
 
 # --- 1. Generación de bits aleatorios ---
 def generate_binary_data(num_bits):
@@ -206,3 +207,85 @@ def plot_signal(signal, time_vector, title):
         yaxis_title="Amplitud",
     )
     return fig
+
+
+def calculate_psd(signal, fs, window='hann', nperseg=None):
+    """
+    Calcula la PSD de una señal utilizando el método de Welch y una ventana Hanning.
+
+    Parameters:
+        signal : numpy array
+            Vector de la señal a analizar.
+        fs : float
+            Frecuencia de muestreo de la señal.
+        window : str, optional
+            Nombre de la ventana a utilizar (por defecto es 'hanning').
+        nperseg : int, optional
+            Longitud de la ventana a utilizar (por defecto es None, lo que calcula welch).
+    
+    Returns:
+        freqs : numpy array
+            Vector de frecuencias correspondiente a la PSD.
+        psd : numpy array
+            Vector de la PSD.
+    """
+    # Calcular la PSD utilizando el método de Welch
+    freqs, psd = welch(signal, fs, window=window, nperseg=nperseg)
+    return freqs, psd
+
+def calculate_psd2(x, fs, fc, ax=None, color='b', label=None):
+    """
+    Calcula y grafica la PSD de una señal modulada utilizando el método de Welch.
+    
+    Parameters:
+        x : numpy array
+            Vector de señal para calcular la PSD.
+        fs : float
+            Frecuencia de muestreo.
+        fc : float
+            Frecuencia portadora central de la señal.
+        ax : matplotlib.axes.Axes, optional
+            Objeto Axes de Matplotlib donde se graficará.
+        color : str, optional
+            Color para la gráfica (por defecto, 'b').
+        label : str, optional
+            Etiqueta para la gráfica.
+    
+    Returns:
+        f_rel : numpy array
+            Frecuencias relativas centradas en fc.
+        Pxx_norm : numpy array
+            PSD normalizada respecto al valor en fc.
+    """
+    from scipy.signal import welch
+    import numpy as np
+
+    # Ajustar parámetros de Welch
+    na = 16  # Factor de promediado
+    nperseg = len(x) // na  # Tamaño de la ventana para Welch
+
+    # Calcular PSD usando Welch con ventana Hann
+    f, Pxx = welch(x, fs, window='hann', nperseg=nperseg, noverlap=0)
+
+    # Filtrar frecuencias alrededor de fc (de fc a 4*fc)
+    indices = (f >= fc) & (f < 4 * fc)
+    f_rel = f[indices] - fc  # Frecuencias relativas centradas en fc
+    Pxx_norm = Pxx[indices] / Pxx[indices][0]  # Normalizar PSD respecto a valor en fc
+
+    # Graficar si se proporciona un objeto Axes
+    if ax is not None:
+        ax.plot(f_rel, 10 * np.log10(Pxx_norm), color=color, label=label)
+        ax.set_xlabel("Frecuencia Relativa (Hz)")
+        ax.set_ylabel("PSD Normalizada (dB)")
+        ax.grid(True)
+        if label:
+            ax.legend()
+
+    return f_rel, Pxx_norm
+
+def calculate_ber(eb_no_db):
+    """Calculates the Bit Error Rate (BER) for given Eb/No values."""
+    eb_no_linear = 10 ** (eb_no_db / 10)  # Convert to linear scale
+    sqrt_eb_no = np.sqrt(eb_no_linear)
+    pe = 0.5 * erfc(sqrt_eb_no)  # Pe = Q(sqrt(2*Eb/No))
+    return pe

@@ -3,12 +3,15 @@ import numpy as np
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 import sistema  # Importamos nuestras funciones definidas en sistema.py
+import matplotlib.pyplot as plt
+
 
 # --- Parámetros Principales ---
 Rb = 2400  # Velocidad de transmisión en bps
 Fs = 19200  # Frecuencia de muestreo en Hz
 Tb = 1 / Rb  # Duración de cada bit en segundos
 Fc = Rb * 4 # Frecuencia portadora
+OF = 16 # Sobremuestreo para modulacion y demod
 
 # --- Centro de Control (Barra Lateral) ---
 st.sidebar.title("Centro de Control")
@@ -63,7 +66,7 @@ def plot_bits(bits, tb, title):
 
 # --- Interfaz de Usuario ---
 st.header("Sistema Digital Paso Banda - Interactivo")
-tab1, tab2 = st.tabs(["Dominio del tiempo", "PSD"])
+tab1, tab2, tab3 = st.tabs(["Dominio del tiempo", "PSD", "BER"])
 
 with tab1:
     plots_container = st.container()  # Contenedor dinámico para agregar gráficas
@@ -92,7 +95,7 @@ with tab1:
     if st.sidebar.button("Modular QPSK"):
         if st.session_state["line_code"] is not None:
             st.session_state["qpsk_signal"], st.session_state["time"], I_t, Q_t= sistema.qpsk_modulation2(
-                st.session_state["encoded_bits"], Fc, 16)
+                st.session_state["encoded_bits"], Fc, OF)
             with plots_container:
                 fig = make_subplots(
                         rows=3, cols=1,
@@ -200,7 +203,7 @@ with tab1:
     if st.sidebar.button("Demodular y Mostrar"):
         if st.session_state["received_signal"] is not None:
             samples_per_symbol = 2*int(Fs / Rb)
-            st.session_state["demodulated_bits"], I_values, Q_values = sistema.qpsk_demodulation(st.session_state["received_signal"], Fc, 16)
+            st.session_state["demodulated_bits"], I_values, Q_values = sistema.qpsk_demodulation(st.session_state["received_signal"], Fc, OF)
             st.session_state["demodulated_bits"] = st.session_state["demodulated_bits"][::1]
             with plots_container:
                 # Create a subplot with 2 rows and 1 column
@@ -252,7 +255,7 @@ with tab1:
     # 8. Signal Constellation Plot
     if st.sidebar.button("Signal Constellation Plot"):
         if st.session_state["received_signal"] is not None:
-            st.session_state["demodulated_bits"], I_values, Q_values = sistema.qpsk_demodulation(st.session_state["received_signal"], Fc, 16)
+            st.session_state["demodulated_bits"], I_values, Q_values = sistema.qpsk_demodulation(st.session_state["received_signal"], Fc, OF)
 
             with plots_container:
                 # Create a scatter plot for the signal constellation
@@ -299,4 +302,48 @@ with tab1:
 
 
 with tab2:
-    st.write("psd")
+    selected_signal = st.multiselect(
+        "Señal para calcular PSD",
+        options=["bits", "encoded_bits", "line_code", "qpsk_signal", "received_signal", "demodulated_bits"],
+        default=["qpsk_signal"]
+    )
+    
+    if st.button("Mostrar PSD"):
+        for signal_name in selected_signal:
+            if signal_name in st.session_state:
+                freqs, psd = sistema.calculate_psd2(st.session_state[signal_name], Fc*OF, Fc)
+                fig = go.Figure(
+                    data=go.Scatter(
+                        x=freqs,
+                        y=psd,
+                        mode="lines",
+                        name=f"PSD de {signal_name}"
+                    )
+                )
+                fig.update_layout(
+                    title=f"PSD de {signal_name}",
+                    xaxis_title="Frecuencia [Hz]",
+                    yaxis_title="Densidad de Potencia [dB/Hz]"
+                )
+                st.plotly_chart(fig)
+
+with tab3:
+    """Creates a tab in Streamlit to display the BER curve."""
+    st.title("BER Curve")
+
+    # Define Eb/No range in dB
+    eb_no_db = np.linspace(0, 15, 100)
+
+    # Calculate BER for given Eb/No values
+    pe = sistema.calculate_ber(eb_no_db)
+
+    # Graficamos BER contra Eb/No en dB
+    plt.figure(figsize=(10, 6))
+    plt.semilogy(eb_no_db, pe, label="Pe vs Eb/No (dB)", color='b')
+    plt.grid(which='both', linestyle='--', linewidth=0.5)
+    plt.title("BER")
+    plt.xlabel(r"$E_b/N_0$ (dB)")
+    plt.ylabel("Pe")
+    plt.legend()
+    
+    st.pyplot(plt)
