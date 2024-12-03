@@ -37,7 +37,7 @@ Este proyecto implementa un sistema de comunicaciones digitales paso banda, util
    git clone https://github.com/tu_usuario/final_comu.git
    cd final_comu
 
-2. **Crea un entorno virtual (opcional pero recomendado**
+2. **Crea un entorno virtual (opcional pero recomendado)**
     ```bash
     python -m venv venv
     source venv/bin/activate  # En macOS/Linux

@@ -1,6 +1,8 @@
 import numpy as np
 from scipy.signal import butter, filtfilt, welch
 from scipy.special import erfc
+import endaq
+import pandas as pd
 
 # --- 1. Generación de bits aleatorios ---
 def generate_binary_data(num_bits):
@@ -50,7 +52,7 @@ def qpsk_modulation2(bits, fc, OF):
     """
     Modulate an incoming binary stream using conventional QPSK
     Parameters:
-        bits : input Bipolar NRZ data stream (-1's and 1's) to modulate
+        bits : input unipolar NRZ data stream (-1's and 1's) to modulate
         fc : carrier frequency in Hertz
         OF : oversampling factor - at least 4 is better
     """
@@ -208,7 +210,7 @@ def plot_signal(signal, time_vector, title):
     )
     return fig
 
-
+# 2. PSDs
 def calculate_psd(signal, fs, window='hann', nperseg=None):
     """
     Calcula la PSD de una señal utilizando el método de Welch y una ventana Hanning.
@@ -282,6 +284,41 @@ def calculate_psd2(x, fs, fc, ax=None, color='b', label=None):
             ax.legend()
 
     return f_rel, Pxx_norm
+
+# 2.3 PSD usando endaq
+import pandas as pd
+import endaq.calc as calc
+
+def calculate_psd_with_dataframe(signal, time_vector, signal_name, bin_width=1):
+    """
+    Calcula la PSD de una señal utilizando endaq.calc y crea un DataFrame con los valores de tiempo y señal.
+    
+    Parameters:
+        signal : numpy array
+            Vector de la señal a analizar.
+        time_vector : numpy array
+            Vector de tiempo correspondiente a la señal.
+        signal_name : str
+            Nombre de la señal (para el DataFrame).
+        bin_width : float, optional
+            Ancho de bin para el cálculo de la PSD (por defecto es 1).
+    
+    Returns:
+        df : pandas.DataFrame
+            DataFrame con las columnas "Time (s)" y "Signal".
+        psd_freqs : numpy array
+            Frecuencias calculadas en la PSD.
+        psd_values : numpy array
+            Valores de la PSD.
+    """
+    # Crear DataFrame con tiempo y señal
+    df = pd.DataFrame(index=time_vector)
+    df[signal_name] = signal
+
+    # Calcular PSD usando endaq.calc.psd.welch
+    psd = calc.psd.welch(df, bin_width=bin_width)
+    
+    return psd
 
 def calculate_ber(eb_no_db):
     """Calculates the Bit Error Rate (BER) for given Eb/No values."""
