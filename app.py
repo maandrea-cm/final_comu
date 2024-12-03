@@ -17,9 +17,9 @@ OF = 16 # Sobremuestreo para modulacion y demod
 
 # --- Centro de Control (Barra Lateral) ---
 st.sidebar.title("Centro de Control")
-num_bits = st.sidebar.number_input("Número de Bits a Simular", min_value=8, max_value=5000, value=20, step=8)
+num_bits = st.sidebar.number_input("Número de Bits a Simular", min_value=8, max_value=50000, value=20, step=8)
 redundancy = st.sidebar.slider("Redundancia de Canal (repetición)", 1, 5, 3)
-snr_db = st.sidebar.slider("Relación Señal a Ruido (SNR) [dB]", 0, 50, 15)
+snr_db = st.sidebar.slider("Relación Señal a Ruido (SNR) [dB]", 0, 25, 15)
 
 # --- Estado Inicial ---
 if "bits" not in st.session_state:
