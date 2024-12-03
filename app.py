@@ -1,23 +1,25 @@
 import streamlit as st
 import numpy as np
+import matplotlib.pyplot as plt
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
+import plotly.express as px
 import sistema  # Importamos nuestras funciones definidas en sistema.py
-import matplotlib.pyplot as plt
+
 
 
 # --- Parámetros Principales ---
 Rb = 2400  # Velocidad de transmisión en bps
 Fs = 19200  # Frecuencia de muestreo en Hz
 Tb = 1 / Rb  # Duración de cada bit en segundos
-Fc = Rb * 4 # Frecuencia portadora
+Fc = Rb * 32 # Frecuencia portadora
 OF = 16 # Sobremuestreo para modulacion y demod
 
 # --- Centro de Control (Barra Lateral) ---
 st.sidebar.title("Centro de Control")
-num_bits = st.sidebar.number_input("Número de Bits a Simular", min_value=8, max_value=5000, value=20, step=8)
+num_bits = st.sidebar.number_input("Número de Bits a Simular", min_value=8, max_value=50000, value=20, step=8)
 redundancy = st.sidebar.slider("Redundancia de Canal (repetición)", 1, 5, 3)
-snr_db = st.sidebar.slider("Relación Señal a Ruido (SNR) [dB]", 0, 50, 15)
+snr_db = st.sidebar.slider("Relación Señal a Ruido (SNR) [dB]", 0, 25, 15)
 
 # --- Estado Inicial ---
 if "bits" not in st.session_state:
@@ -311,20 +313,12 @@ with tab2:
     if st.button("Mostrar PSD"):
         for signal_name in selected_signal:
             if signal_name in st.session_state:
-                freqs, psd = sistema.calculate_psd2(st.session_state[signal_name], Fc*OF, Fc)
-                fig = go.Figure(
-                    data=go.Scatter(
-                        x=freqs,
-                        y=psd,
-                        mode="lines",
-                        name=f"PSD de {signal_name}"
-                    )
-                )
-                fig.update_layout(
-                    title=f"PSD de {signal_name}",
-                    xaxis_title="Frecuencia [Hz]",
-                    yaxis_title="Densidad de Potencia [dB/Hz]"
-                )
+                psd = sistema.calculate_psd_with_dataframe(st.session_state[signal_name], st.session_state["time"], signal_name)
+                fig = px.line(psd).update_layout(
+                    yaxis_title_text="PSD [dB/Hz]", 
+                    xaxis_title_text="Frecuencia [Hz]", 
+                    legend_title_text=f"PSD de {signal_name}",
+                    xaxis=dict(rangeslider=dict(visible=True),))
                 st.plotly_chart(fig)
 
 with tab3:
